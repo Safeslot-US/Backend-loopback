@@ -6,8 +6,7 @@ module.exports = function (app) {
   const Stores = app.models.Store; 
   const bodyParser = require("body-parser");
   const moment = require("moment");
-  require("mongodb-moment")(moment);
-
+  // require("mongodb-moment")(moment);
   router.use(bodyParser.json({ extended: true }));
 
   router.post("/api/bookings", (req, res) => {
@@ -35,18 +34,17 @@ module.exports = function (app) {
   })
 
   router.get("/api/availableSlots", (req, res) => {
-    //req.body comes in w/ storeId. 
     //for now only query avail slots for today; can change it to 3-7 day increments if store commits to regular duration/maxPeople 
     const { storeId } = req.body; 
-    const tomorrow = moment().add(1, 'days').startOf('day').utc().toISOString(); 
-    const yesterday = moment().subtract(1, 'days').endOf('day').utc().toISOString();
-    const dayStart = moment().startOf('day').utc().toISOString();
-    const dayEnd = moment().endOf('day').utc().toISOString();
-    
+    // const tomorrow = moment().utc().add(1, 'days').startOf('day').toISOString(); 
+    // const yesterday = moment().utc().subtract(1, 'days').endOf('day').toISOString();
+    const dayStart = moment().utc().startOf('day').toISOString();
+    const dayEnd = moment().utc().endOf('day').toISOString();
+
     Slots.find({
       "where": { 
         date: 
-          { between: [yesterday, tomorrow] }, 
+          { between: [dayStart, dayEnd] }, 
           storeId: storeId
       }, include: 'bookings'})
       .then(slots => {
