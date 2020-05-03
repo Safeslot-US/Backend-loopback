@@ -1,16 +1,17 @@
 const loopback = require("loopback");
 module.exports = function (app) {
   const router = app.loopback.Router();
-  const Bookings = app.models.Booking;
-  const Slots = app.models.Slot;
+  const { Booking, Slot, Store } = app.models; 
   const bodyParser = require("body-parser");
+  const moment = require("moment");
+  const generateTimeslots = require('./helpers').generateTimeslots; 
+  // require("mongodb-moment")(moment);
   router.use(bodyParser.json({ extended: true }));
 
   router.post("/api/bookings", (req, res) => {
     const newBooking = req.body;
-
-    const bookingsForSlot = Bookings.find({ "where": { "slotId": newBooking.slotId } });
-    const slot = Slots.findById(newBooking.slotId, { include: 'bookings' }); 
+    const bookingsForSlot = Booking.find({ "where": { "slotId": newBooking.slotId } });
+    const slot = Slot.findById(newBooking.slotId, { include: 'bookings' }); 
 
     Promise.all([bookingsForSlot, slot])
         .then(queries => {
@@ -20,7 +21,7 @@ module.exports = function (app) {
             if (!foundBookings || !foundSlot) {
                 res.json({ "error": "This slot does not exist"})
             } else if (foundBookings.length < foundSlot.maxPeoplePerSlot) {
-                Bookings.create(newBooking)
+                Booking.create(newBooking)
                     .then(createdBooking => res.json(createdBooking))
                     .catch(err => console.log(err));
             } else {
@@ -30,17 +31,49 @@ module.exports = function (app) {
         .catch(err => console.log(err))
   })
 
-//   For GET api/availableBookings 
-//   -current date comes in 
-//   -query db to see if slots for that date already exist in db. if yes, query bookings to check how many slots are still 
-//   available for each slot that day, i.e. where bookings.length < maxPeoplePerSlot. Return 3-5 options to user. May be ways to optimize this so it is less costly. 
+  router.get("/api/availableSlots", (req, res) => {
+    //Get available slots for today.
+    const { storeId } = req.body; 
+    // const tomorrow = moment().utc().add(1, 'days').startOf('day').toISOString(); 
+    // const yesterday = moment().utc().subtract(1, 'days').endOf('day').toISOString();
+    const dayStart = moment().utc().startOf('day').toISOString();
+    const dayEnd = moment().utc().endOf('day').toISOString();
 
-//   -if date does not exist in db, generate new slots for that date. return 3-5 options to user. 
+    Slot.find({
+      "where": { 
+        date: 
+          { between: [dayStart, dayEnd] }, 
+          storeId: storeId
+      }, include: 'bookings'})
+      .then(slots => {
+        if (!slots) {
+          res.json({ "error": "No slots created for this date and storeId yet."})
+        } else { 
+        const avail = slots.filter((booking) => {
+            let numBookings = booking.bookings().length; 
+            let maxPeoplePerSlot = booking.maxPeoplePerSlot;
+            return numBookings < maxPeoplePerSlot;
+        });
+        res.json(avail);
+      }})
+      .catch(err => console.log(err));
+  })
 
-//   -alternatively could possibly integrate cron jobs, which trigger at programmed intervals like per day or per week. 
-//   but if we used this, we would need to know what duration the store wanted for slots the next day. cannot change 
-//   slot time dynamically, or booked users will have to re-book their slots, which is a bad UX. 
-
+  router.get("/api/generateSlots", (req, res) => {
+    //Generate new slots for today.
+    const { storeId } = req.body; 
+    Store.findById(storeId)
+      .then(store => { 
+        const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
+        const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
+        Slot.create(newSlots)
+          .then(newSlots => { 
+            res.json(newSlots)
+          })
+          .catch(err => console.log(err))
+      })
+      .catch(err => console.log(err));
+  })
   
   app.use(router);
 };
