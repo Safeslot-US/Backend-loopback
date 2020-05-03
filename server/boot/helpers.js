@@ -85,11 +85,6 @@ function generateTimeslots(timeInterval, startTime, endTime, storeId, maxPeopleP
 
  function generatePairs(slots, startTime, endTime, storeId, maxPeoplePerSlot){
      const newSlots = [];
-     console.log('slots looks like ', slots);
-     console.log('start time is ', startTime);
-     console.log('end time is ', endTime);
-     console.log('store id is ', storeId);
-     console.log('max people per slot is ', maxPeoplePerSlot);
 
      for (let i = 0; i < slots.length - 1; i++) {
         let slotObj = {
@@ -100,11 +95,8 @@ function generateTimeslots(timeInterval, startTime, endTime, storeId, maxPeopleP
         };
         newSlots.push(slotObj);
      }
-     console.log('newSlots looks like... ', newSlots);
 
      return newSlots; 
-     //add i and i + 1 to one slot object. add storeId and maxPeoplePerSlot to slot object as well 
-    //return pairedSlots 
  }
 
  module.exports = { 
