@@ -25,16 +25,26 @@
     "openingHour": {
       "type": "string",
       "required": true,
-      "default": "8:00 a.m."
+      "default": "08:00"
     },
     "closingHour": {
       "type": "string",
       "required": true,
-      "default": "8:00 p.m."
+      "default": "20:00"
     },
-    "QR code": {
+    "QRcode": {
       "type": "string",
       "required": true
+    }, 
+    "slotDuration": {
+      "type": "number", 
+      "required": true, 
+      "default": 20 
+    }, 
+    "maxPeoplePerSlot": {
+      "type": "number", 
+      "required": true, 
+      "default": 15
     }
   },
   "validations": [],

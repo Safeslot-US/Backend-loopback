@@ -1,19 +1,17 @@
 const loopback = require("loopback");
 module.exports = function (app) {
   const router = app.loopback.Router();
-  const Bookings = app.models.Booking;
-  const Slots = app.models.Slot;
-  const Stores = app.models.Store; 
+  const { Booking, Slot, Store } = app.models; 
   const bodyParser = require("body-parser");
   const moment = require("moment");
+  const generateTimeslots = require('./helpers').generateTimeslots; 
   // require("mongodb-moment")(moment);
   router.use(bodyParser.json({ extended: true }));
 
   router.post("/api/bookings", (req, res) => {
     const newBooking = req.body;
-
-    const bookingsForSlot = Bookings.find({ "where": { "slotId": newBooking.slotId } });
-    const slot = Slots.findById(newBooking.slotId, { include: 'bookings' }); 
+    const bookingsForSlot = Booking.find({ "where": { "slotId": newBooking.slotId } });
+    const slot = Slot.findById(newBooking.slotId, { include: 'bookings' }); 
 
     Promise.all([bookingsForSlot, slot])
         .then(queries => {
@@ -23,7 +21,7 @@ module.exports = function (app) {
             if (!foundBookings || !foundSlot) {
                 res.json({ "error": "This slot does not exist"})
             } else if (foundBookings.length < foundSlot.maxPeoplePerSlot) {
-                Bookings.create(newBooking)
+                Booking.create(newBooking)
                     .then(createdBooking => res.json(createdBooking))
                     .catch(err => console.log(err));
             } else {
@@ -34,14 +32,14 @@ module.exports = function (app) {
   })
 
   router.get("/api/availableSlots", (req, res) => {
-    //for now only query avail slots for today; can change it to 3-7 day increments if store commits to regular duration/maxPeople 
+    //Get available slots for today.
     const { storeId } = req.body; 
     // const tomorrow = moment().utc().add(1, 'days').startOf('day').toISOString(); 
     // const yesterday = moment().utc().subtract(1, 'days').endOf('day').toISOString();
     const dayStart = moment().utc().startOf('day').toISOString();
     const dayEnd = moment().utc().endOf('day').toISOString();
 
-    Slots.find({
+    Slot.find({
       "where": { 
         date: 
           { between: [dayStart, dayEnd] }, 
@@ -49,17 +47,31 @@ module.exports = function (app) {
       }, include: 'bookings'})
       .then(slots => {
         if (!slots) {
-          //generate new timeslots in db based on maxPeoplePerSlot and duration 
-          //return new slot results of db query 
-          res.json({ "error": "No bookings found for this date and storeId."})
+          res.json({ "error": "No slots created for this date and storeId yet."})
         } else { 
         const avail = slots.filter((booking) => {
             let numBookings = booking.bookings().length; 
             let maxPeoplePerSlot = booking.maxPeoplePerSlot;
             return numBookings < maxPeoplePerSlot;
         });
-        res.json(avail)
+        res.json(avail);
       }})
+      .catch(err => console.log(err));
+  })
+
+  router.get("/api/generateSlots", (req, res) => {
+    //Generate new slots for today.
+    const { storeId } = req.body; 
+    Store.findById(storeId)
+      .then(store => { 
+        const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
+        const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
+        Slot.create(newSlots)
+          .then(newSlots => { 
+            res.json(newSlots)
+          })
+          .catch(err => console.log(err))
+      })
       .catch(err => console.log(err));
   })
   
