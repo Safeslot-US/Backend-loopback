@@ -11,28 +11,25 @@
       "required": true
     },
     "firstName": {
-      "type": "string", 
-      "required": true 
+      "type": "string"
     }, 
     "lastName": {
-      "type": "string", 
-      "required": true 
+      "type": "string"
     },
     "username": {
-      "type": "string",
-      "required": true
+      "type": "string"
     },
     "phoneNumber": {
-      "type": "string",
-      "required": true
+      "type": "string"
     },
     "emailAddress": {
-      "type": "string",
-      "required": true
+      "type": "string"
+    },
+    "googleId": {
+      "type": "string"
     },
     "password": {
-      "type": "string",
-      "required": true
+      "type": "string"
     }
   },
   "validations": [],

@@ -4,10 +4,46 @@ module.exports = function (app) {
   const { Booking, Slot, Store } = app.models; 
   const bodyParser = require("body-parser");
   const moment = require("moment");
+  const passportSetup = require("../passport-setup");
+  const passport = require("passport");
+  const cookieSession = require("cookie-session");
   const generateTimeslots = require('./helpers').generateTimeslots; 
-  // require("mongodb-moment")(moment);
+  const keys = require("../keys");
+
+  app.use(cookieSession({
+    //maxAge for session 1 day 
+    maxAge: 24 * 60 * 60 * 1000,
+    keys: [keys.session.cookieKey]
+  }));
+  
+  // Initialize passport
+  app.use(passport.initialize());
+  app.use(passport.session());
+
   router.use(bodyParser.json({ extended: true }));
 
+
+  // Auth Routes  
+  router.get("/auth/google/", passport.authenticate("google", {
+    scope: ['profile', 'email']
+ }))
+
+  router.get("/auth/google/redirect", passport.authenticate('google'), (req, res) => {
+    //User is logged in at this point. Should redirect user to their home page.
+    res.redirect("/")
+  })
+
+  router.get("/auth/getUser", (req, res) => {
+    res.json(req.user);
+  })
+
+  router.post("/auth/logout", (req, res) => {
+      req.logout();
+      res.redirect("/")
+  })
+  
+
+  // API Routes 
   router.post("/api/bookings", (req, res) => {
     const newBooking = req.body;
     const bookingsForSlot = Booking.find({ "where": { "slotId": newBooking.slotId } });
@@ -34,8 +70,6 @@ module.exports = function (app) {
   router.get("/api/availableSlots", (req, res) => {
     //Get available slots for today.
     const { storeId } = req.body; 
-    // const tomorrow = moment().utc().add(1, 'days').startOf('day').toISOString(); 
-    // const yesterday = moment().utc().subtract(1, 'days').endOf('day').toISOString();
     const dayStart = moment().utc().startOf('day').toISOString();
     const dayEnd = moment().utc().endOf('day').toISOString();
 
@@ -74,6 +108,8 @@ module.exports = function (app) {
       })
       .catch(err => console.log(err));
   })
+
+  
   
   app.use(router);
 };
