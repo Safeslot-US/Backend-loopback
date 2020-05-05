@@ -1,8 +1,5 @@
-// * Generate an array of timeslots based on timeinterval
-// * 
-// * @param  {integer} timeinterval   In mins. Can only accept 20, 30 or 60
-// * @return {array}                  
-// */
+//Adapted from https://codepen.io/attilab/pen/KWmQMB?editors=0010
+//Generates an array of timeslots based on timeinterval
 
 function generateTimeslots(timeInterval, startTime, endTime, storeId, maxPeoplePerSlot) {
    // Assert valid time interval.
