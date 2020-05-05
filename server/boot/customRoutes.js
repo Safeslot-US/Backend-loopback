@@ -22,7 +22,6 @@ module.exports = function (app) {
 
   router.use(bodyParser.json({ extended: true }));
 
-
   // Auth Routes  
   router.get("/auth/google/", passport.authenticate("google", {
     scope: ['profile', 'email']
@@ -72,7 +71,7 @@ module.exports = function (app) {
     const { storeId } = req.body; 
     const dayStart = moment().utc().startOf('day').toISOString();
     const dayEnd = moment().utc().endOf('day').toISOString();
-
+    
     Slot.find({
       "where": { 
         date: 
