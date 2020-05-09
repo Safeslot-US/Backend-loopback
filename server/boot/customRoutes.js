@@ -9,6 +9,7 @@ module.exports = function (app) {
   const cookieSession = require("cookie-session");
   const generateTimeslots = require('./helpers').generateTimeslots; 
   const keys = require("../keys");
+  const cron = require("node-cron")
 
   app.use(cookieSession({
     //maxAge for session 1 day 
@@ -21,6 +22,7 @@ module.exports = function (app) {
   app.use(passport.session());
 
   router.use(bodyParser.json({ extended: true }));
+
 
   // Auth Routes  
   router.get("/auth/google/", passport.authenticate("google", {
@@ -62,9 +64,9 @@ module.exports = function (app) {
       .then(createdBooking => res.json(createdBooking))
       .catch(err => console.log(err));
   })
-
+  
   router.get("/api/availableSlots", (req, res) => {
-    //Get available slots for today.
+     //Get available slots for today.
     const { storeId } = req.body; 
     const dayStart = moment().utc().startOf('day').toISOString();
     const dayEnd = moment().utc().endOf('day').toISOString();
@@ -89,24 +91,22 @@ module.exports = function (app) {
       .catch(err => console.log(err));
   })
 
-  //for each store in safeslot db 
-    //take its id, openingHour etc 
-    //use generateTimeslots to create new slots 
-
-  router.get("/api/generateSlots", (req, res) => {
-    //Generate new slots for today.
-    const { storeId } = req.body; 
-    Store.findById(storeId)
-      .then(store => { 
-        const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
-        const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
-        return Slot.create(newSlots)
+  cron.schedule("0 0 * * *", function() {
+    //Cron job-- triggers each day at GMT midnight to generate the next day's slots for each store.
+    Store.find()
+      .then(stores => {
+        stores.map(store => {
+          const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
+          const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
+          return Slot.create(newSlots)
+        })
       })
-      .then(newSlots => res.json(newSlots))
-      .catch(err => console.log(err));
-  })
+      .catch(err => console.log(err))
+  });
+  
+  // cron.schedule("* * * * *", function() {
+  //   console.log("test - running a task every minute");
+  // });
 
-  
-  
   app.use(router);
 };
