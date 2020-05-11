@@ -23,6 +23,20 @@ module.exports = function (app) {
 
   router.use(bodyParser.json({ extended: true }));
 
+  
+  //Cron job-- triggers each day at 1am GMT to generate the next day's slots for each store.
+  cron.schedule("0 0 * * *", function() {
+    Store.find()
+      .then(stores => {
+        return stores.map(store => {
+          const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
+          const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
+          return Slot.create(newSlots);
+        })
+      })
+      .then(createdSlots => createdSlots)
+      .catch(err => console.log(err))
+  });
 
   // Auth Routes  
   router.get("/auth/google/", passport.authenticate("google", {
@@ -90,23 +104,6 @@ module.exports = function (app) {
       }})
       .catch(err => console.log(err));
   })
-
-  cron.schedule("0 0 * * *", function() {
-    //Cron job-- triggers each day at GMT midnight to generate the next day's slots for each store.
-    Store.find()
-      .then(stores => {
-        stores.map(store => {
-          const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
-          const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
-          return Slot.create(newSlots)
-        })
-      })
-      .catch(err => console.log(err))
-  });
-  
-  // cron.schedule("* * * * *", function() {
-  //   console.log("test - running a task every minute");
-  // });
 
   app.use(router);
 };
