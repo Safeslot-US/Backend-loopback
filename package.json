@@ -23,6 +23,7 @@
     "loopback-connector-mongodb": "^4.2.0",
     "mongodb-moment": "^1.0.2",
     "node-cron": "^2.0.3",
+    "nodemailer": "^6.4.6",
     "passport": "^0.4.1",
     "passport-google-oauth": "^2.0.0",
     "serve-favicon": "^2.0.1",

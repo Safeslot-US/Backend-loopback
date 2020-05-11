@@ -9,7 +9,8 @@ module.exports = function (app) {
   const cookieSession = require("cookie-session");
   const generateTimeslots = require('./helpers').generateTimeslots; 
   const keys = require("../keys");
-  const cron = require("node-cron")
+  const cron = require("node-cron"); 
+  const nodemailer = require("nodemailer");
 
   app.use(cookieSession({
     //maxAge for session 1 day 
@@ -103,6 +104,35 @@ module.exports = function (app) {
   router.post("/auth/logout", (req, res) => {
       req.logout();
       res.redirect("/")
+  })
+
+  //Set up Nodemailer 
+  const transporter = nodemailer.createTransport({
+    service: 'gmail', 
+    auth: { 
+      user: 'teamsafeslot@gmail.com', 
+      pass: keys.nodeMailer.key
+    }
+  })
+
+  //Mail route 
+  router.post('/api/mail', (req, res) => {
+    //Need to add QR code to email 
+    const { toAddress, slotTime, slotDate, slotId } = req.body; 
+    const mailOptions = {
+      from: 'teamsafeslot@gmail.com', 
+      to: toAddress, 
+      subject: 'Your Safeslot Reservation', 
+      html: `Your reservation is for ${slotDate} at ${slotTime}. Please show the store your QR code at the door.`
+    }
+  
+    transporter.sendMail(mailOptions, (err, info) => {
+     if (err) {
+       console.log(err)
+     } else {
+       console.log(info)
+     }
+    })
   })
   
   app.use(router);
