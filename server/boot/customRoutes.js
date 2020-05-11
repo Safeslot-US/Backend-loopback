@@ -9,6 +9,7 @@ module.exports = function (app) {
   const cookieSession = require("cookie-session");
   const generateTimeslots = require('./helpers').generateTimeslots; 
   const keys = require("../keys");
+  const cron = require("node-cron")
 
   app.use(cookieSession({
     //maxAge for session 1 day 
@@ -21,6 +22,21 @@ module.exports = function (app) {
   app.use(passport.session());
 
   router.use(bodyParser.json({ extended: true }));
+
+  
+  //Cron job-- triggers each day at 1am GMT to generate the next day's slots for each store.
+  cron.schedule("0 0 * * *", function() {
+    Store.find()
+      .then(stores => {
+        return stores.map(store => {
+          const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
+          const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
+          return Slot.create(newSlots);
+        })
+      })
+      .then(createdSlots => createdSlots)
+      .catch(err => console.log(err))
+  });
 
   // Auth Routes  
   router.get("/auth/google/", passport.authenticate("google", {
@@ -41,33 +57,30 @@ module.exports = function (app) {
       res.redirect("/")
   })
   
-
   // API Routes 
   router.post("/api/bookings", (req, res) => {
     const newBooking = req.body;
-    const bookingsForSlot = Booking.find({ "where": { "slotId": newBooking.slotId } });
-    const slot = Slot.findById(newBooking.slotId, { include: 'bookings' }); 
 
-    Promise.all([bookingsForSlot, slot])
-        .then(queries => {
-            const foundBookings = queries[0];
-            const foundSlot = queries[1];
+    Slot.findById(newBooking.slotId, { include: 'bookings' })
+      .then(foundSlot => {
+        if (!foundSlot) {
+          return res.json({"error": "This slot does not exist!"})
+        }
+        const numBookings = foundSlot.bookings().length; 
+        const maxPeoplePerSlot = foundSlot.maxPeoplePerSlot; 
 
-            if (!foundBookings || !foundSlot) {
-                res.json({ "error": "This slot does not exist"})
-            } else if (foundBookings.length < foundSlot.maxPeoplePerSlot) {
-                Booking.create(newBooking)
-                    .then(createdBooking => res.json(createdBooking))
-                    .catch(err => console.log(err));
-            } else {
-                res.json({ "error": "This slot is no longer available. Try a different slot."})
-            }
-        }) 
-        .catch(err => console.log(err))
+        if (numBookings < maxPeoplePerSlot) {
+          return Booking.create(newBooking);
+        } else { 
+          return res.json({"error": "This slot is no longer available. Try a different slot."})
+        }
+      })
+      .then(createdBooking => res.json(createdBooking))
+      .catch(err => console.log(err));
   })
-
+  
   router.get("/api/availableSlots", (req, res) => {
-    //Get available slots for today.
+     //Get available slots for today.
     const { storeId } = req.body; 
     const dayStart = moment().utc().startOf('day').toISOString();
     const dayEnd = moment().utc().endOf('day').toISOString();
@@ -79,36 +92,18 @@ module.exports = function (app) {
           storeId: storeId
       }, include: 'bookings'})
       .then(slots => {
-        if (!slots) {
-          res.json({ "error": "No slots created for this date and storeId yet."})
+        if (slots.length < 1) {
+          return res.json({ "error": "No slots created for this date and storeId yet."})
         } else { 
         const avail = slots.filter((booking) => {
             let numBookings = booking.bookings().length; 
             let maxPeoplePerSlot = booking.maxPeoplePerSlot;
             return numBookings < maxPeoplePerSlot;
         });
-        res.json(avail);
+        return res.json(avail);
       }})
       .catch(err => console.log(err));
   })
 
-  router.get("/api/generateSlots", (req, res) => {
-    //Generate new slots for today.
-    const { storeId } = req.body; 
-    Store.findById(storeId)
-      .then(store => { 
-        const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
-        const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
-        Slot.create(newSlots)
-          .then(newSlots => { 
-            res.json(newSlots)
-          })
-          .catch(err => console.log(err))
-      })
-      .catch(err => console.log(err));
-  })
-
-  
-  
   app.use(router);
 };
