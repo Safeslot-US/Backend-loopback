@@ -118,12 +118,12 @@ module.exports = function (app) {
   //Mail route 
   router.post('/api/mail', (req, res) => {
     //Need to add QR code to email 
-    const { toAddress, slotTime, slotDate, slotId } = req.body; 
+    const { toAddress, slotTime, slotDate, slotId, storeName } = req.body; 
     const mailOptions = {
       from: 'teamsafeslot@gmail.com', 
       to: toAddress, 
       subject: 'Your Safeslot Reservation', 
-      html: `Your reservation is for ${slotDate} at ${slotTime}. Please show the store your QR code at the door.`
+      html: `Your reservation at ${storeName} is for ${slotDate} at ${slotTime}. Please show the store your QR code at the door.`
     }
   
     transporter.sendMail(mailOptions, (err, info) => {
