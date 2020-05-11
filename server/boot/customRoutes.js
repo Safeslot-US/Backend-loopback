@@ -38,25 +38,6 @@ module.exports = function (app) {
       .catch(err => console.log(err))
   });
 
-  // Auth Routes  
-  router.get("/auth/google/", passport.authenticate("google", {
-    scope: ['profile', 'email']
- }))
-
-  router.get("/auth/google/redirect", passport.authenticate('google'), (req, res) => {
-    //User is logged in at this point. Should redirect user to their home page.
-    res.redirect("/")
-  })
-
-  router.get("/auth/getUser", (req, res) => {
-    res.json(req.user);
-  })
-
-  router.post("/auth/logout", (req, res) => {
-      req.logout();
-      res.redirect("/")
-  })
-  
   // API Routes 
   router.post("/api/bookings", (req, res) => {
     const newBooking = req.body;
@@ -105,5 +86,24 @@ module.exports = function (app) {
       .catch(err => console.log(err));
   })
 
+  // Auth Routes  
+  router.get("/auth/google/", passport.authenticate("google", {
+    scope: ['profile', 'email']
+ }))
+
+  router.get("/auth/google/redirect", passport.authenticate('google'), (req, res) => {
+    //User is logged in at this point. Should redirect user to their home page.
+    res.redirect("/")
+  })
+
+  router.get("/auth/getUser", (req, res) => {
+    res.json(req.user);
+  })
+
+  router.post("/auth/logout", (req, res) => {
+      req.logout();
+      res.redirect("/")
+  })
+  
   app.use(router);
 };
