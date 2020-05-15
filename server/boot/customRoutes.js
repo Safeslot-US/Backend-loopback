@@ -22,11 +22,12 @@ module.exports = function (app) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  router.use(bodyParser.json({ extended: true }));
+  app.use(bodyParser.json({ extended: true }));
 
   
   //Cron job-- triggers each day at 1am GMT to generate the next day's slots for each store.
-  cron.schedule("0 0 * * *", function() {
+  cron.schedule("0 1 * * *", function() {
+  
     Store.find()
       .then(stores => {
         return stores.map(store => {
@@ -106,7 +107,7 @@ module.exports = function (app) {
       res.redirect("/")
   })
 
-  //Set up Nodemailer 
+  // Set up Nodemailer 
   const transporter = nodemailer.createTransport({
     service: 'gmail', 
     auth: { 
@@ -115,13 +116,13 @@ module.exports = function (app) {
     }
   })
 
-  //Mail route 
+  // // Mail route 
   router.post('/api/mail', (req, res) => {
     //Need to add QR code to email 
     const { toAddress, slotTime, slotDate, slotId, storeName } = req.body; 
     const mailOptions = {
       from: 'teamsafeslot@gmail.com', 
-      to: toAddress, 
+      to: "christenmartin@gmail.com", 
       subject: 'Your Safeslot Reservation', 
       html: `Your reservation at ${storeName} is for ${slotDate} at ${slotTime}. Please show the store your QR code at the door.`
     }
