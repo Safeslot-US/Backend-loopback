@@ -22,23 +22,22 @@ module.exports = function (app) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  app.use(bodyParser.json({ extended: true }));
+  router.use(bodyParser.json({ extended: true }));
 
-  
   //Cron job-- triggers each day at 1am GMT to generate the next day's slots for each store.
-  cron.schedule("0 1 * * *", function() {
-  
-    Store.find()
-      .then(stores => {
-        return stores.map(store => {
-          const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
-          const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
-          return Slot.create(newSlots);
-        })
-      })
-      .then(createdSlots => createdSlots)
-      .catch(err => console.log(err))
-  });
+  // cron.schedule("*/5 * * * *", function() {
+  //   console.log('triggered')
+  //   Store.find()
+  //     .then(stores => {
+  //       return stores.map(store => {
+  //         const { id, openingHour, closingHour, slotDuration, maxPeoplePerSlot } = store; 
+  //         const newSlots = generateTimeslots(slotDuration, openingHour, closingHour, id, maxPeoplePerSlot);
+  //         return Slot.create(newSlots);
+  //       })
+  //     })
+  //     .then(createdSlots => createdSlots)
+  //     .catch(err => console.log(err))
+  // });
 
   // API Routes 
   router.post("/api/bookings", (req, res) => {
@@ -52,7 +51,7 @@ module.exports = function (app) {
         const numBookings = foundSlot.bookings().length; 
         const maxPeoplePerSlot = foundSlot.maxPeoplePerSlot; 
 
-        if (numBookings < maxPeoplePerSlot) {
+        if (numBookings <= maxPeoplePerSlot) {
           return Booking.create(newBooking);
         } else { 
           return res.json({"error": "This slot is no longer available. Try a different slot."})
@@ -62,8 +61,34 @@ module.exports = function (app) {
       .catch(err => console.log(err));
   })
   
-  router.get("/api/availableSlots", (req, res) => {
-     //Get available slots for today.
+  // router.get("/api/availableSlots", (req, res) => {
+  //    //Get available slots for today.
+  //   const { storeId } = req.body; 
+  //   const dayStart = moment().utc().startOf('day').toISOString();
+  //   const dayEnd = moment().utc().endOf('day').toISOString();
+    
+  //   Slot.find({
+  //     "where": { 
+  //       date: 
+  //         { between: [dayStart, dayEnd] }, 
+  //         storeId: storeId
+  //     }, include: 'bookings'})
+  //     .then(slots => {
+  //       if (slots.length < 1) {
+  //         return res.json({ "error": "No slots created for this date and storeId yet."})
+  //       } else { 
+  //       const avail = slots.filter((booking) => {
+  //           let numBookings = booking.bookings().length; 
+  //           let maxPeoplePerSlot = booking.maxPeoplePerSlot;
+  //           return numBookings < maxPeoplePerSlot;
+  //       });
+  //       return res.json(avail);
+  //     }})
+  //     .catch(err => console.log(err));
+  // })
+
+  router.get("/api/allSlotsToday", (req, res) => {
+    //Get all slots today.
     const { storeId } = req.body; 
     const dayStart = moment().utc().startOf('day').toISOString();
     const dayEnd = moment().utc().endOf('day').toISOString();
@@ -78,16 +103,12 @@ module.exports = function (app) {
         if (slots.length < 1) {
           return res.json({ "error": "No slots created for this date and storeId yet."})
         } else { 
-        const avail = slots.filter((booking) => {
-            let numBookings = booking.bookings().length; 
-            let maxPeoplePerSlot = booking.maxPeoplePerSlot;
-            return numBookings < maxPeoplePerSlot;
-        });
-        return res.json(avail);
-      }})
+          return res.json(slots);
+        }
+      })
       .catch(err => console.log(err));
   })
-
+  
   // Auth Routes  
   router.get("/auth/google/", passport.authenticate("google", {
     scope: ['profile', 'email']
@@ -122,7 +143,7 @@ module.exports = function (app) {
     const { toAddress, slotTime, slotDate, slotId, storeName } = req.body; 
     const mailOptions = {
       from: 'teamsafeslot@gmail.com', 
-      to: "christenmartin@gmail.com", 
+      to: toAddress, 
       subject: 'Your Safeslot Reservation', 
       html: `Your reservation at ${storeName} is for ${slotDate} at ${slotTime}. Please show the store your QR code at the door.`
     }
