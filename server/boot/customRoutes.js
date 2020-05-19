@@ -24,7 +24,7 @@ module.exports = function (app) {
 
   router.use(bodyParser.json({ extended: true }));
 
-
+  //why isn't this working
   // Cron job-- triggers each day at 1am GMT to generate the next day's slots for each store.
   // cron.schedule("*/5 * * * *", function() {
   //   console.log('triggered')
