@@ -9,5 +9,5 @@ module.exports = {
     nodeMailer: {
         key: 'process.env.NODEMAILER_KEY'
     }, 
-    mongo_URI: 'process.env.MONGO_URI'
+    mongoURI: 'process.env.MONGO_URI'
 }
