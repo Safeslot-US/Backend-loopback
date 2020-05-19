@@ -12,7 +12,6 @@
     "dev": "nodemon ."
   },
   "dependencies": {
-    "ajv": "^5.5.2",
     "compression": "^1.0.3",
     "cookie-session": "^1.4.0",
     "cors": "^2.5.2",
@@ -43,3 +42,4 @@
   "license": "UNLICENSED",
   "description": "safeSlots"
 }
+

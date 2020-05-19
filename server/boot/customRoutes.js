@@ -24,7 +24,8 @@ module.exports = function (app) {
 
   router.use(bodyParser.json({ extended: true }));
 
-  //Cron job-- triggers each day at 1am GMT to generate the next day's slots for each store.
+  //Superfluous comment to get heroku to rebuild
+  // Cron job-- triggers each day at 1am GMT to generate the next day's slots for each store.
   // cron.schedule("*/5 * * * *", function() {
   //   console.log('triggered')
   //   Store.find()
@@ -35,7 +36,6 @@ module.exports = function (app) {
   //         return Slot.create(newSlots);
   //       })
   //     })
-  //     .then(createdSlots => createdSlots)
   //     .catch(err => console.log(err))
   // });
 
@@ -57,10 +57,10 @@ module.exports = function (app) {
           return res.json({"error": "This slot is no longer available. Try a different slot."})
         }
       })
-      .then(createdBooking => res.json(createdBooking))
       .catch(err => console.log(err));
   })
   
+  //Will remove below, unless there is a reason to keep it around instead of just using /allSlotsToday?
   // router.get("/api/availableSlots", (req, res) => {
   //    //Get available slots for today.
   //   const { storeId } = req.body; 
@@ -100,7 +100,7 @@ module.exports = function (app) {
           storeId: storeId
       }, include: 'bookings'})
       .then(slots => {
-        if (slots.length < 1) {
+        if (!slots.length) {
           return res.json({ "error": "No slots created for this date and storeId yet."})
         } else { 
           return res.json(slots);
@@ -149,11 +149,7 @@ module.exports = function (app) {
     }
   
     transporter.sendMail(mailOptions, (err, info) => {
-     if (err) {
-       console.log(err)
-     } else {
-       console.log(info)
-     }
+      console.log(err, info);
     })
   })
   
